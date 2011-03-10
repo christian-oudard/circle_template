@@ -2,11 +2,11 @@ import math
 
 def even_circle(radius):
     c = math.floor(radius + 0.5) + 0.5
-    return circle_points((c, c), radius)
+    return circle((c, c), radius)
 
-def circle_points(center, radius):
+def circle(center, radius):
     """
-    >>> points = circle_points((1.5, 1.5), 2)
+    >>> points = circle((1.5, 1.5), 2)
     >>> len(points)
     12
     >>> sorted(points)
@@ -33,10 +33,23 @@ def circle_points(center, radius):
 
     return set(circle_points)
 
+def ring(center, outer_radius, inner_radius):
+    """
+    >>> print(format_points(offset_points(ring((0, 0), 3.5, 1.0))))
+      ###
+     #####
+    ### ###
+    ##   ##
+    ### ###
+     #####
+      ###
+    """
+    return circle(center, outer_radius) - circle(center, inner_radius)
+
 def offset_points(points):
     """
     Move points to fit nicely in the +x, +y quadrant.
-    >>> points = circle_points((0, 0), 2.3)
+    >>> points = circle((0, 0), 2.3)
     >>> print(format_points(points))
     ###
     ###
@@ -55,7 +68,7 @@ def offset_points(points):
 
 def format_points(points):
     """
-    >>> points = circle_points((1.5, 1.5), 2)
+    >>> points = circle((1.5, 1.5), 2)
     >>> print(format_points(points))
      ##
     ####
@@ -77,21 +90,4 @@ def format_points(points):
     return '\n'.join(lines)
 
 if __name__ == '__main__':
-    for tweak in range(-4, 5):
-        print(tweak)
-        radius = 10 + tweak * 0.1
-        c = math.floor(radius + 0.5) + 0.5
-        print(format_points(circle_points((c, c - 0.5), radius)))
-    #start = 2
-    #stop = 5.3
-    #num_steps = 40
-    #step_size = (stop - start) / num_steps
-    #print(step_size)
-    #i = 0
-    #while True:
-    #    radius = start + i * step_size
-    #    if radius > stop:
-    #        break
-    #    print(radius)
-    #    print(format_points(even_circle(radius)))
-    #    i += 1
+    pass
