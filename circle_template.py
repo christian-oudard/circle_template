@@ -85,24 +85,28 @@ def sign_of(x):
     if x < 0:
         return -1
 
-def cmp_line(l1, l2, p):
+def cmp_line(l1, l2, p, epsilon=1e-10):
     """
     Determine where the point p lies with relation to the line l1-l2.
     Return -1 if s is below, +1 if it is above, and 0 if it is on the line.
 
     >>> cmp_line((-1,-1), (1,1), (1,0))
-    -2
+    -1
     >>> cmp_line((-1,-1), (1,1), (0,1))
-    2
+    1
     >>> cmp_line((-1,-1), (1,1), (0,0))
     0
 
     It also works with vertical lines.
     >>> cmp_line((0,-1), (0,1), (1, 0))
-    -2
+    -1
     >>> cmp_line((0,-1), (0,1), (-1, 0))
-    2
+    1
     >>> cmp_line((0,-1), (0,1), (0, 0))
+    0
+
+    Very close points count as on the line.
+    >>> cmp_line((0,-1), (0,1), (1e-16, 0))
     0
     """
     x1, y1 = l1
@@ -110,7 +114,10 @@ def cmp_line(l1, l2, p):
     x, y = p
     dy = y2 - y1
     dx = x2 - x1
-    return (y * dx) - (dy * (x - x1) + y1 * dx)
+    c = (y * dx) - (dy * (x - x1) + y1 * dx)
+    if abs(c) < epsilon:
+        return 0
+    return sign_of(c)
 
 def partition(points, l1, l2, s=None):
     """
@@ -148,10 +155,9 @@ def partition(points, l1, l2, s=None):
 
     for p in points:
         c = cmp_line(l1, l2, p)
-        s = sign_of(c)
-        if s == sign:
+        if c == sign:
             yield p
-        elif abs(c) < 1e-10:
+        elif c == 0:
             yield p
 
 def offset_points(points):
@@ -174,15 +180,16 @@ def offset_points(points):
     min_y = min(y for x, y in points)
     return set((x - min_x, y - min_y) for x, y in points)
 
-def format_points(points, max_x=None, max_y=None):
+def format_points(points, max_x=None, max_y=None, on='#', off=' '):
     """
-    >>> points = circle((1.5, 1.5), 2)
-    >>> print(format_points(points))
+    >>> print(format_points([(1, 0), (2, 0), (0, 1), (1, 1)]))
+    ##
      ##
-    ####
-    ####
-     ##
+    >>> format_points([])
+    ''
     """
+    if not points:
+        return ''
     if max_x is None:
         max_x = max(x for x, y in points)
     if max_y is None:
@@ -193,9 +200,9 @@ def format_points(points, max_x=None, max_y=None):
         line = []
         for x in range(max_x + 1):
             if (x, max_y - y) in points:
-                line.append('#')
+                line.append(on)
             else:
-                line.append(' ')
+                line.append(off)
         lines.append(''.join(line).rstrip())
     return '\n'.join(lines)
 
@@ -204,22 +211,53 @@ def interpolate(low, high, mu):
     >>> [interpolate(0, 20, m/10) for m in range(10 + 1)]
     [0.0, 2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0, 18.0, 20.0]
     """
-    #return low + (high - low) * mu
-    return low * (1 - mu) + high * mu # Naive version, could exhibit catastrophic cancellation.
+    #return low + (high - low) * mu # Naive version, could exhibit catastrophic cancellation.
+    return low * (1 - mu) + high * mu
+
+def polygon(vertices):
+    """
+    Specify a polygon with the clockwise series of vertices.
+    >>> print(format_points(polygon([(0, 0), (0, 2), (2, 2), (4, 0)])))
+    ###
+    ####
+    #####
+    """
+    min_x = min(x for x, y in vertices)
+    max_x = max(x for x, y in vertices)
+    min_y = min(y for x, y in vertices)
+    max_y = max(y for x, y in vertices)
+
+    points = [(x, y) for x in range(min_x, max_x + 1) for y in range(min_y, max_y + 1)]
+    for a, b in zip(vertices, vertices[1:] + [vertices[0]]):
+        points = list(partition(points, a, b))
+    return set(points)
 
 if __name__ == '__main__':
-    outer = 10.5
-    inner = 7.2
-    ratio = outer / inner
-    angle_step = 5
-    slice_width = 30
+    ring_width = 3.2
+    slice_angle = 45
 
-    center = center_x, center_y = (11, 11)
+    min_radius = 10.5
+    max_radius = 0
 
-    for step in range(360 // angle_step):
-        start_angle = step * angle_step
-        end_angle = start_angle + slice_width
+    min_angle = -360 * 1.5
+    max_angle = 0
+
+    num_steps = 40
+
+    c = math.floor(max(min_radius, max_radius))
+    center = (c, c)
+
+    for mu in range(num_steps + 1):
+        mu = mu / num_steps
+        print(mu)
+
+        start_angle = interpolate(min_angle, max_angle, mu)
+        end_angle = start_angle + slice_angle
+
+        outer = interpolate(min_radius, max_radius, mu)
+        inner = outer - ring_width
+
         points = ring(center, outer, inner)
         points = radial_slice(points, center, start_angle, end_angle)
-        print(start_angle, end_angle)
-        print(format_points(points, max_x=center_x * 2, max_y=center_y * 2))
+        print('-'*c*2)
+        print(format_points(points, max_x=c*2, max_y=c*2, off='.'))
