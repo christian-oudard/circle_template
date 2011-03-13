@@ -221,11 +221,15 @@ def polygon(vertices):
     ###
     ####
     #####
+    >>> print(format_points(polygon([(0, 0), (0, 2.3), (2.7, 0)])))
+    #
+    ##
+    ###
     """
-    min_x = min(x for x, y in vertices)
-    max_x = max(x for x, y in vertices)
-    min_y = min(y for x, y in vertices)
-    max_y = max(y for x, y in vertices)
+    min_x = math.floor(min(x for x, y in vertices))
+    max_x = math.ceil(max(x for x, y in vertices))
+    min_y = math.floor(min(y for x, y in vertices))
+    max_y = math.ceil(max(y for x, y in vertices))
 
     points = [(x, y) for x in range(min_x, max_x + 1) for y in range(min_y, max_y + 1)]
     for a, b in zip(vertices, vertices[1:] + [vertices[0]]):
