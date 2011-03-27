@@ -180,7 +180,7 @@ def offset_points(points):
     min_y = min(y for x, y in points)
     return set((x - min_x, y - min_y) for x, y in points)
 
-def format_points(points, max_x=None, max_y=None, on='#', off=' '):
+def format_points(points, max_x=None, max_y=None, on='#', off=' ', raw=False):
     """
     >>> print(format_points([(1, 0), (2, 0), (0, 1), (1, 1)]))
     ##
@@ -203,8 +203,11 @@ def format_points(points, max_x=None, max_y=None, on='#', off=' '):
                 line.append(on)
             else:
                 line.append(off)
-        lines.append(''.join(line).rstrip())
-    return '\n'.join(lines)
+        lines.append(line)
+
+    if raw:
+        return lines
+    return '\n'.join(''.join(line).rstrip() for line in lines)
 
 def interpolate(low, high, mu):
     """
