@@ -160,7 +160,7 @@ def partition(points, l1, l2, s=None):
         elif c == 0:
             yield p
 
-def offset_points(points):
+def offset_points(points, min_x=None, min_y=None):
     """
     Move points to fit nicely in the +x, +y quadrant.
     >>> points = circle((0, 0), 2.3)
@@ -176,8 +176,10 @@ def offset_points(points):
     #####
      ###
     """
-    min_x = min(x for x, y in points)
-    min_y = min(y for x, y in points)
+    if min_x is None:
+        min_x = min(x for x, y in points)
+    if min_y is None:
+        min_y = min(y for x, y in points)
     return set((x - min_x, y - min_y) for x, y in points)
 
 def format_points(points, max_x=None, max_y=None, on='#', off=' ', raw=False):
