@@ -4,7 +4,6 @@ from collections import namedtuple
 import vec
 from shape_template import format_points
 
-#TODO: Update drawing scripts.
 #TODO: Match minecraft-style stairs and half-slabs as well as possible when rendering.
 
 ## Utility ##
