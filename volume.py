@@ -4,6 +4,7 @@ from collections import namedtuple
 import vec
 from shape_template import format_points
 
+#TODO: Update drawing scripts.
 #TODO: Match minecraft-style stairs and half-slabs as well as possible when rendering.
 
 ## Utility ##
@@ -27,32 +28,27 @@ class Box(Volume):
     """
     def __init__(self, bounds):
         self._bounds = bounds
+        (
+            (self.xlo, self.xhi),
+            (self.ylo, self.yhi),
+            (self.zlo, self.zhi),
+        ) = self._bounds
 
     def contains(self, point):
-        (
-            (xlo, xhi),
-            (ylo, yhi),
-            (zlo, zhi),
-        ) = self.bounds
         p = point
         return (
-            xlo < p.x < xhi and
-            ylo < p.y < yhi and
-            zlo < p.z < zhi
+            self.xlo < p.x < self.xhi and
+            self.ylo < p.y < self.yhi and
+            self.zlo < p.z < self.zhi
         )
 
     def bounds(self):
         return self._bounds
 
     def render(self):
-        (
-            (xlo, xhi),
-            (ylo, yhi),
-            (zlo, zhi),
-        ) = self._bounds
-        for x in range(xlo, xhi + 1):
-            for y in range(ylo, yhi + 1):
-                for z in range(zlo, zhi + 1):
+        for x in range(self.xlo, self.xhi + 1):
+            for y in range(self.ylo, self.yhi + 1):
+                for z in range(self.zlo, self.zhi + 1):
                     yield Point3(x, y, z)
 
     def to_integers(self):
@@ -82,6 +78,9 @@ class Box(Volume):
                 max(self.zhi, other.zhi),
             ),
         ])
+
+    def __eq__(self, other):
+        return self._bounds == other._bounds
 
     @classmethod
     def from_volumes(cls, volumes):
