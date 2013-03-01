@@ -4,6 +4,9 @@ from collections import namedtuple
 import vec
 from shape_template import format_points
 
+#TODO: Model bounds as a Box volume.
+#TODO: Match minecraft-style stairs and half-slabs as well as possible when rendering.
+
 Point3 = namedtuple('Point', 'x, y, z')
 
 ## Types of volumes ##
@@ -36,26 +39,43 @@ class Sphere:
             self.radius,
         )
 
-class PlaneBoundary:
+class Plane:
     """
     Create a plane boundary shape, to intersect with other shapes.
 
     The direction of the normal vector determines which is the "on" side.
     """
-    def __init__(self, center, normal):
+    def __init__(self, center, normal, bounds):
         self.center = Point3._make(center)
         self.normal = normal
+        self._bounds = bounds
 
     def contains(self, point):
-        raise NotImplementedError()
+        sign = vec.dot(
+            vec.vfrom(self.center, point),
+            self.normal,
+        )
+        return (sign >= 0)
 
     def bounds(self):
-        c = self.center
-        return integer_bounds([
-            (c.x, c.x),
-            (c.y, c.y),
-            (c.z, c.z),
-        ])
+        return self._bounds
+
+#TODO: Polyhedron volume made from Plane objects.
+class Polyhedron:
+    def __init__(self, vertices):
+        #TODO:
+        # Find the convex shell of the vertices.
+        # Raise an error if the vertices were not convex.
+        # Construct planar boundaries from the convex shell.
+            # Calculate the bounding box of the vertices.
+            # Initialize the half plane volumes with the bounding box.
+        pass
+
+    def contains(self, point):
+        #TODO:
+        # Check against all of the plane boundaries.
+        pass
+
 
 ## Bounding box math ##
 
