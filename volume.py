@@ -4,12 +4,11 @@ from collections import namedtuple
 import vec
 from shape_template import format_points
 
-#TODO: clean up render(v) vs v.render()
 #TODO: Match minecraft-style stairs and half-slabs as well as possible when rendering.
 
-Point3 = namedtuple('Point', 'x, y, z')
+## Utility ##
 
-## Utility functions ##
+Point3 = namedtuple('Point', 'x, y, z')
 
 def dist2(a, b):
     return (b.x - a.x)**2 + (b.y - a.y)**2 + (b.z - a.z)**2
@@ -95,6 +94,26 @@ class Box(Volume):
             box = box.union(v.bounds())
         return box
 
+class Plane(Volume):
+    """
+    Create a plane boundary shape, to intersect with other shapes.
+
+    The direction of the normal vector determines which is the "on" side.
+    """
+    def __init__(self, center, normal, bounds):
+        self.center = Point3._make(center)
+        self.normal = normal
+        self._bounds = bounds
+
+    def contains(self, point):
+        sign = vec.dot(
+            vec.vfrom(self.center, point),
+            self.normal,
+        )
+        return (sign >= 0)
+
+    def bounds(self):
+        return self._bounds
 
 class Sphere(Volume):
     def __init__(self, center, radius):
@@ -121,42 +140,36 @@ class Sphere(Volume):
             self.radius,
         )
 
-class Plane(Volume):
-    """
-    Create a plane boundary shape, to intersect with other shapes.
-
-    The direction of the normal vector determines which is the "on" side.
-    """
-    def __init__(self, center, normal, bounds):
-        self.center = Point3._make(center)
-        self.normal = normal
-        self._bounds = bounds
+class Cylinder(Volume):
+    def __init__(self, a, b, radius):
+        self.a = Point3._make(a)
+        self.b = Point3._make(b)
+        self.radius = radius
+        self.radius2 = radius**2
 
     def contains(self, point):
-        sign = vec.dot(
-            vec.vfrom(self.center, point),
-            self.normal,
-        )
-        return (sign >= 0)
+        raise NotImplementedError()
 
     def bounds(self):
-        return self._bounds
+        raise NotImplementedError()
 
 #TODO: Polyhedron volume made from Plane objects.
 class Polyhedron(Volume):
     def __init__(self, vertices):
         #TODO:
         # Find the convex shell of the vertices.
+        # Find the bounding box of the convex shell.
         # Raise an error if the vertices were not convex.
         # Construct planar boundaries from the convex shell.
             # Calculate the bounding box of the vertices.
             # Initialize the half plane volumes with the bounding box.
-        pass
+        raise NotImplementedError()
 
     def contains(self, point):
         #TODO:
         # Check against all of the plane boundaries.
-        pass
+        raise NotImplementedError()
+
 
 ## Drawing logic ##
 
