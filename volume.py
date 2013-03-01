@@ -70,6 +70,10 @@ def integer_bounds(bounds):
         ))
     return result
 
+def volume_list_bounds(volumes):
+    # Get a bounding box for the whole collection of volumes.
+    return union_bounds(v.bounds() for v in volumes)
+
 def union_bounds(bounds_list):
     """
     Get the bounding box that surrounds all the bounding boxes passed in.
@@ -124,17 +128,9 @@ def points_in_bounds(bounds):
 
 ## Geometry calculations ##
 
-def contained_points(volumes):
-    """
-    Calculate which points are contained in any of the volumes.
-    """
-    # Get a bounding box for the whole collection of volumes.
-    bounding_box = union_bounds(v.bounds() for v in volumes)
-
-    # Iterate over all the points within the bounds, and test whether they are
-    # contained in any of our volumes.
-    for p in points_in_bounds(bounding_box):
-        if any(v.contains(p) for v in volumes):
+def render(volume):
+    for p in points_in_bounds(volume.bounds()):
+        if volume.contains(p):
             yield p
 
 def translate(points, offset):
@@ -157,9 +153,7 @@ def split_layers(points):
 
 ## Drawing logic ##
 
-def draw_layers(volumes, on='[]', off='  '):
-    points = list(contained_points(volumes))
-
+def draw_layers(points, on='[]', off='  '):
     # Shift the geometry so that every point has (x, y, z) all greater than 0
     xmax = max(p.x for p in points)
     xmin = min(p.x for p in points)

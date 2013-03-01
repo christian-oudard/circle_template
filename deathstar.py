@@ -6,7 +6,7 @@ b = Sphere((5, 5, 5), 10)
 bounds = volume_list_bounds([a, b])
 field = set(points_in_bounds(bounds))
 
-points = set(render(a)) | set(render(b))
+points = set(render(a)) - set(render(b))
 
 sep = '-' * 80
 print(sep)
