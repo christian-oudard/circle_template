@@ -16,7 +16,13 @@ def dist2(a, b):
 
 ## Types of volumes ##
 
-class Box:
+class Volume:
+    def render(self):
+        for p in self.bounds().render():
+            if self.contains(p):
+                yield p
+
+class Box(Volume):
     """
     Boxes are specified by a list of dimension bounds.
     """
@@ -90,7 +96,7 @@ class Box:
         return box
 
 
-class Sphere:
+class Sphere(Volume):
     def __init__(self, center, radius):
         self.center = Point3._make(center)
         self.radius = radius
@@ -115,7 +121,7 @@ class Sphere:
             self.radius,
         )
 
-class Plane:
+class Plane(Volume):
     """
     Create a plane boundary shape, to intersect with other shapes.
 
@@ -137,7 +143,7 @@ class Plane:
         return self._bounds
 
 #TODO: Polyhedron volume made from Plane objects.
-class Polyhedron:
+class Polyhedron(Volume):
     def __init__(self, vertices):
         #TODO:
         # Find the convex shell of the vertices.
@@ -153,11 +159,6 @@ class Polyhedron:
         pass
 
 ## Geometry calculations ##
-
-def render(volume):
-    for p in volume.bounds().render():
-        if volume.contains(p):
-            yield p
 
 def translate(points, offset):
     return [
