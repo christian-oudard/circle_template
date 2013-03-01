@@ -4,10 +4,9 @@ import math
 from textwrap import dedent
 
 from volume import (
+    Box,
     Sphere,
     Plane,
-    volume_list_bounds,
-    points_in_bounds,
     render,
     draw_layers,
 )
@@ -38,9 +37,9 @@ def test_sphere():
     )
 
 def test_plane():
-    bounds = [(0, 3), (0, 3), (0, 3)]
+    bounds = Box([(0, 3), (0, 3), (0, 3)])
     plane = Plane((1.5, 1.5, 1.5), (1, 1, 1), bounds)
-    field = set(points_in_bounds(bounds))
+    field = set(bounds.render())
     points = field - set(render(plane))
 
     layers = draw_layers(points, on='#', off='-')
@@ -74,7 +73,7 @@ def test_plane():
 def test_plane_sphere_boolean():
     # Draw a sphere and slice off the top half.
     sphere = Sphere((0, 0, 0), 3)
-    bounds = volume_list_bounds([sphere])
+    bounds = Box.from_volumes([sphere])
     plane = Plane((0, 0, 0), (0, 0, 1), bounds)
     points = set(render(sphere)) - set(render(plane))
 

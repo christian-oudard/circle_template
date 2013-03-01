@@ -4,15 +4,91 @@ from collections import namedtuple
 import vec
 from shape_template import format_points
 
-#TODO: Model bounds as a Box volume.
+#TODO: clean up render(v) vs v.render()
 #TODO: Match minecraft-style stairs and half-slabs as well as possible when rendering.
 
 Point3 = namedtuple('Point', 'x, y, z')
 
-## Types of volumes ##
+## Utility functions ##
 
 def dist2(a, b):
     return (b.x - a.x)**2 + (b.y - a.y)**2 + (b.z - a.z)**2
+
+## Types of volumes ##
+
+class Box:
+    """
+    Boxes are specified by a list of dimension bounds.
+    """
+    def __init__(self, bounds):
+        self._bounds = bounds
+
+    def contains(self, point):
+        (
+            (xlo, xhi),
+            (ylo, yhi),
+            (zlo, zhi),
+        ) = self.bounds
+        p = point
+        return (
+            xlo < p.x < xhi and
+            ylo < p.y < yhi and
+            zlo < p.z < zhi
+        )
+
+    def bounds(self):
+        return self._bounds
+
+    def render(self):
+        (
+            (xlo, xhi),
+            (ylo, yhi),
+            (zlo, zhi),
+        ) = self._bounds
+        for x in range(xlo, xhi + 1):
+            for y in range(ylo, yhi + 1):
+                for z in range(zlo, zhi + 1):
+                    yield Point3(x, y, z)
+
+    def to_integers(self):
+        integer_bounds = []
+        for lo, hi in self._bounds:
+            integer_bounds.append((
+                int(math.floor(lo)),
+                int(math.ceil(hi)),
+            ))
+        return Box(integer_bounds)
+
+    def union(self, other):
+        """
+        Get the bounding box that surrounds both boxes.
+        """
+        return Box([
+            (
+                min(self.xlo, other.xlo),
+                max(self.xhi, other.xhi),
+            ),
+            (
+                min(self.ylo, other.ylo),
+                max(self.yhi, other.yhi),
+            ),
+            (
+                min(self.zlo, other.zlo),
+                max(self.zhi, other.zhi),
+            ),
+        ])
+
+    @classmethod
+    def from_volumes(cls, volumes):
+        """
+        Get a bounding box which surrounds all the volumes passed in.
+        """
+        first = volumes[0]
+        box = first.bounds()
+        for v in volumes[1:]:
+            box = box.union(v.bounds())
+        return box
+
 
 class Sphere:
     def __init__(self, center, radius):
@@ -27,11 +103,11 @@ class Sphere:
     def bounds(self):
         c = self.center
         r = self.radius
-        return integer_bounds([
+        return Box([
             (c.x - r, c.x + r),
             (c.y - r, c.y + r),
             (c.z - r, c.z + r),
-        ])
+        ]).to_integers()
 
     def shifted(offset):
         return Sphere(
@@ -76,80 +152,10 @@ class Polyhedron:
         # Check against all of the plane boundaries.
         pass
 
-
-## Bounding box math ##
-
-#TODO Refactor bounds into a class or namedtuple.
-
-def integer_bounds(bounds):
-    result = []
-    for lo, hi in bounds:
-        result.append((
-            int(math.floor(lo)),
-            int(math.ceil(hi)),
-        ))
-    return result
-
-def volume_list_bounds(volumes):
-    # Get a bounding box for the whole collection of volumes.
-    return union_bounds(v.bounds() for v in volumes)
-
-def union_bounds(bounds_list):
-    """
-    Get the bounding box that surrounds all the bounding boxes passed in.
-
-    Bounds are specified as lists of ranges, one range for each of the x, y, and z dimensions.
-    Each range is a (lo, hi) pair.
-    """
-    bounds_iter = iter(bounds_list)
-
-    first = next(bounds_iter)
-    (
-        (xmin, xmax),
-        (ymin, ymax),
-        (zmin, zmax),
-    ) = first
-
-    for b in bounds_iter:
-        (
-            (xlo, xhi),
-            (ylo, yhi),
-            (zlo, zhi),
-        ) = b
-        xmin = min(xmin, xlo)
-        xmax = max(xmax, xhi)
-        ymin = min(ymin, ylo)
-        ymax = max(ymax, yhi)
-        zmin = min(zmin, zlo)
-        zmax = max(zmax, zhi)
-    return [
-        (xmin, xmax),
-        (ymin, ymax),
-        (zmin, zmax),
-    ]
-
-def normalize_range(r):
-    """
-    Shift a range so it starts with zero, but keeps the same size.
-    """
-    lo, hi = r
-    return (0, hi - lo)
-
-def points_in_bounds(bounds):
-    (
-        (xlo, xhi),
-        (ylo, yhi),
-        (zlo, zhi),
-    ) = bounds
-    for x in range(xlo, xhi + 1):
-        for y in range(ylo, yhi + 1):
-            for z in range(zlo, zhi + 1):
-                yield Point3(x, y, z)
-
 ## Geometry calculations ##
 
 def render(volume):
-    for p in points_in_bounds(volume.bounds()):
+    for p in volume.bounds().render():
         if volume.contains(p):
             yield p
 
