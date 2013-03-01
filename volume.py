@@ -158,7 +158,7 @@ class Polyhedron(Volume):
         # Check against all of the plane boundaries.
         pass
 
-## Geometry calculations ##
+## Drawing logic ##
 
 def translate(points, offset):
     return [
@@ -176,9 +176,6 @@ def split_layers(points):
             if p.z == z:
                 layer_points.append(p)
         yield layer_points
-
-
-## Drawing logic ##
 
 def draw_layers(points, on='[]', off='  '):
     # Shift the geometry so that every point has (x, y, z) all greater than 0
