@@ -149,6 +149,10 @@ class Cylinder(Volume):
         raise NotImplementedError()
 
     def bounds(self):
+        # Get a parametric equation for the endcap circle.
+        # http://math.stackexchange.com/questions/73237/parametric-equation-of-a-circle-in-3d-space
+        # Then because they are simple sin + cos equations, you can
+        # determine the amplitude in each dimension by inspection,
         raise NotImplementedError()
 
 #TODO: Polyhedron volume made from Plane objects.
@@ -166,6 +170,26 @@ class Polyhedron(Volume):
     def contains(self, point):
         #TODO:
         # Check against all of the plane boundaries.
+        raise NotImplementedError()
+
+class Path(Volume):
+    def __init__(self):
+        # Takes a parametric path function in t for each of x, y, z, and radius.
+        raise NotImplementedError()
+
+    def contains(self, point):
+        # Find the nearest spot on the path to the given point.
+            # Write a function for the distance.
+            # Minimize this function over the t domain.
+        # Determine the radius value at the nearest spot, and compare it
+        # with the distance from the path to the point.
+        raise NotImplementedError()
+
+    def bounds(self):
+        # Calculate bounds by doing max/min on a parameterization.
+        # We take the radius ball, and trace it along the path, and
+        # doing vec.add(point, (radius, 0, 0)), to find, for example, the
+        # +x part of the bounding box.
         raise NotImplementedError()
 
 
