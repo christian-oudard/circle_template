@@ -1,17 +1,36 @@
 import math
 from collections import namedtuple
 
+from scipy.optimize import minimize_scalar
+
 import vec
 from shape_template import format_points
 
-#TODO: Match minecraft-style stairs and half-slabs as well as possible when rendering.
+#TODO: Match minecraft-style stairs and half-slabs as well as possible when
+# rendering.
 
 ## Utility ##
 
 Point3 = namedtuple('Point', 'x, y, z')
 
-def dist2(a, b):
-    return (b.x - a.x)**2 + (b.y - a.y)**2 + (b.z - a.z)**2
+
+def dist(a, b):
+    return vec.mag(vec.vfrom(a, b))
+
+
+def lerp(a, b, t):
+    """
+    Linear interpolation between two values.
+
+    >>> lerp(0, 10, 0)
+    0
+    >>> lerp(0, 10, 1)
+    10
+    >>> lerp(0, 3, 1/3)
+    1.0
+    """
+    return a + (b - a) * t
+
 
 ## Types of volumes ##
 
@@ -20,6 +39,7 @@ class Volume:
         for p in self.bounds().render():
             if self.contains(p):
                 yield p
+
 
 class Box(Volume):
     """
@@ -92,6 +112,7 @@ class Box(Volume):
             box = box.union(v.bounds())
         return box
 
+
 class Plane(Volume):
     """
     Create a plane boundary shape, to intersect with other shapes.
@@ -113,15 +134,15 @@ class Plane(Volume):
     def bounds(self):
         return self._bounds
 
+
 class Sphere(Volume):
     def __init__(self, center, radius):
         self.center = Point3._make(center)
         self.radius = radius
-        self.radius2 = radius**2
 
     def contains(self, point):
         point = Point3._make(point)
-        return dist2(self.center, point) < self.radius2
+        return dist(self.center, point) < self.radius
 
     def bounds(self):
         c = self.center
@@ -132,11 +153,12 @@ class Sphere(Volume):
             (c.z - r, c.z + r),
         ]).to_integers()
 
-    def shifted(offset):
+    def shifted(self, offset):
         return Sphere(
             vec.add(self.center, offset),
             self.radius,
         )
+
 
 class Cylinder(Volume):
     def __init__(self, a, b, radius):
@@ -150,10 +172,11 @@ class Cylinder(Volume):
 
     def bounds(self):
         # Get a parametric equation for the endcap circle.
-        # http://math.stackexchange.com/questions/73237/parametric-equation-of-a-circle-in-3d-space
+        # http://math.stackexchange.com/questions/73237/
         # Then because they are simple sin + cos equations, you can
         # determine the amplitude in each dimension by inspection,
         raise NotImplementedError()
+
 
 #TODO: Polyhedron volume made from Plane objects.
 class Polyhedron(Volume):
@@ -172,10 +195,36 @@ class Polyhedron(Volume):
         # Check against all of the plane boundaries.
         raise NotImplementedError()
 
+
 class Path(Volume):
-    def __init__(self):
-        # Takes a parametric path function in t for each of x, y, z, and radius.
-        raise NotImplementedError()
+    distance_tolerance = 0.0001
+
+    def __init__(self, position_func, radius_func, tmin, tmax, bounds=None):
+        # Takes a parametric path function in t for the position and radius.
+        self.position_func = position_func
+        self.radius_func = radius_func
+        self.tmin = tmin
+        self.tmax = tmax
+        self._bounds = bounds
+
+    def minimize(self, func):
+        """
+        Return the t value at which the given function is minimized.
+        """
+        res = minimize_scalar(
+            func,
+            bounds=(self.tmin, self.tmax),
+            method='bounded',
+        )
+        return res.x
+
+    def maximize(self, func):
+        """
+        Return the t value at which the given function is maximized.
+        """
+        def neg_func(t):
+            return -func(t)
+        return self.minimize(neg_func)
 
     def contains(self, point):
         # Find the nearest spot on the path to the given point.
@@ -183,14 +232,42 @@ class Path(Volume):
             # Minimize this function over the t domain.
         # Determine the radius value at the nearest spot, and compare it
         # with the distance from the path to the point.
-        raise NotImplementedError()
+        def dist_func(t):
+            curve_point = self.position_func(t)
+            return dist(curve_point, point)
+
+        t_closest = self.minimize(dist_func)
+        distance = dist_func(t_closest)
+        radius = self.radius_func(t_closest)
+
+        return (radius - distance) > self.distance_tolerance
 
     def bounds(self):
-        # Calculate bounds by doing max/min on a parameterization.
-        # We take the radius ball, and trace it along the path, and
-        # doing vec.add(point, (radius, 0, 0)), to find, for example, the
-        # +x part of the bounding box.
-        raise NotImplementedError()
+        if self._bounds is not None:
+            return self._bounds  # STUB
+        else:
+            # Calculate bounds by doing max/min on a parameterization.
+            # We take the radius ball, and trace it along the path, and
+            # doing vec.add(point, (radius, 0, 0)), to find, for example, the
+            # +x part of the bounding box.
+            def find_bound(max_or_min, component_func):
+                def f(t):
+                    curve_point = Point3(*self.position_func(t))
+                    radius = self.radius_func(t)
+                    return component_func(curve_point, radius)
+                optimum_t = max_or_min(f)
+                return f(optimum_t)
+
+            xmin = find_bound(self.minimize, lambda p, r: p.x - r)
+            xmax = find_bound(self.maximize, lambda p, r: p.x + r)
+            ymin = find_bound(self.minimize, lambda p, r: p.y - r)
+            ymax = find_bound(self.maximize, lambda p, r: p.y + r)
+            zmin = find_bound(self.minimize, lambda p, r: p.z - r)
+            zmax = find_bound(self.maximize, lambda p, r: p.z + r)
+
+            return Box(
+                [(xmin, xmax), (ymin, ymax), (zmin, zmax)]
+            ).to_integers()
 
 
 ## Drawing logic ##
@@ -200,6 +277,7 @@ def translate(points, offset):
         Point3._make(vec.add(p, offset))
         for p in points
     ]
+
 
 def split_layers(points):
     zmin = min(p.z for p in points)
@@ -212,7 +290,10 @@ def split_layers(points):
                 layer_points.append(p)
         yield layer_points
 
+
 def draw_layers(points, on='[]', off='  '):
+    points = list(points)
+
     # Shift the geometry so that every point has (x, y, z) all greater than 0
     xmax = max(p.x for p in points)
     xmin = min(p.x for p in points)
